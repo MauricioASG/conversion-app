@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { MaterialIcons } from '@expo/vector-icons';
-import WheelPicker from 'react-native-wheely';
 import {
+  FlatList,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -15,6 +15,96 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+
+// ─── WheelPicker ──────────────────────────────────────────────────────────────
+
+const WHEEL_SIDE = 2;
+
+type WheelPickerProps = {
+  selectedIndex: number;
+  options: string[];
+  onChange: (index: number) => void;
+  itemHeight?: number;
+  containerStyle?: object;
+  itemTextStyle?: object;
+  selectedIndicatorStyle?: object;
+  decelerationRate?: 'fast' | 'normal';
+};
+
+function WheelPicker({
+  selectedIndex,
+  options,
+  onChange,
+  itemHeight = 40,
+  containerStyle,
+  itemTextStyle,
+  selectedIndicatorStyle,
+  decelerationRate = 'fast',
+}: WheelPickerProps) {
+  const ref = useRef<FlatList<string | null>>(null);
+  const [activeIndex, setActiveIndex] = useState(selectedIndex);
+  const lastReported = useRef(selectedIndex);
+
+  const containerHeight = (1 + WHEEL_SIDE * 2) * itemHeight;
+
+  const paddedOptions = useMemo<(string | null)[]>(() => [
+    ...Array<null>(WHEEL_SIDE).fill(null),
+    ...options,
+    ...Array<null>(WHEEL_SIDE).fill(null),
+  ], [options]);
+
+  useEffect(() => {
+    ref.current?.scrollToIndex({ index: selectedIndex, animated: false });
+    setActiveIndex(selectedIndex);
+    lastReported.current = selectedIndex;
+  }, [selectedIndex]);
+
+  function onScrollSettle(e: { nativeEvent: { contentOffset: { y: number } } }) {
+    const idx = Math.max(0, Math.min(
+      Math.round(e.nativeEvent.contentOffset.y / itemHeight),
+      options.length - 1,
+    ));
+    setActiveIndex(idx);
+    if (idx !== lastReported.current) {
+      lastReported.current = idx;
+      onChange(idx);
+    }
+  }
+
+  return (
+    <View style={[{ height: containerHeight, overflow: 'hidden' }, containerStyle]}>
+      <View
+        pointerEvents="none"
+        style={[
+          { position: 'absolute', top: WHEEL_SIDE * itemHeight, height: itemHeight, left: 0, right: 0 },
+          selectedIndicatorStyle,
+        ]}
+      />
+      <FlatList
+        ref={ref}
+        data={paddedOptions}
+        keyExtractor={(_, i) => String(i)}
+        showsVerticalScrollIndicator={false}
+        snapToInterval={itemHeight}
+        decelerationRate={decelerationRate}
+        onMomentumScrollEnd={onScrollSettle}
+        onScrollEndDrag={onScrollSettle}
+        initialScrollIndex={selectedIndex}
+        getItemLayout={(_, i) => ({ length: itemHeight, offset: itemHeight * i, index: i })}
+        extraData={activeIndex}
+        renderItem={({ item, index }) => {
+          const dist = Math.abs(index - WHEEL_SIDE - activeIndex);
+          const opacity = dist === 0 ? 1 : dist === 1 ? 0.4 : 0.12;
+          return (
+            <View style={{ height: itemHeight, justifyContent: 'center', alignItems: 'center' }}>
+              <Text style={[itemTextStyle, { opacity }]}>{item ?? ''}</Text>
+            </View>
+          );
+        }}
+      />
+    </View>
+  );
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
