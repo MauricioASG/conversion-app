@@ -1,8 +1,8 @@
 @AGENTS.md
 
 # Gym Converter — Contexto del proyecto
-
 App personal para Android que convierte pesos entre libras y kilos durante entrenamientos de gimnasio.
+Tambíen incluye un temporizador para apoyar a usuarios en su tiempo de descanso.
 
 ## Stack
 - Expo SDK 54 (`~54.0.34`)
@@ -21,7 +21,6 @@ App personal para Android que convierte pesos entre libras y kilos durante entre
 - Sin backend, login, ni base de datos
 - Sin internet
 - Sin navegación compleja
-- Sin librerías UI externas
 - No cambiar configuración de Expo salvo que sea necesario
 - No leer node_modules salvo necesidad estricta
 
@@ -30,6 +29,9 @@ App personal para Android que convierte pesos entre libras y kilos durante entre
 - lb = kg × 2.2046226218
 - Resultado redondeado a 2 decimales
 
-## Botones rápidos
+## Botones rápidos convertidor
 - Libras: 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 60, 70, 80, 90, 100
 - Kilos: 2.5, 5, 10, 15, 20, 25, 30, 40, 50
+
+## Botones rápidos temporizador
+- segundos o minutos: 30s, 1min, 2min, 3min, 5min,
