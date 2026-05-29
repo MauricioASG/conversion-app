@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/logo_conversion_app.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "splash": {
       "image": "./assets/logo_conversion_app.png",
       "resizeMode": "contain",
@@ -21,7 +21,7 @@
         "foregroundImage": "./assets/logo_conversion_app.png",
         "backgroundColor": "#1C1C1E"
       },
-      "edgeToEdgeEnabled": true,
+      "edgeToEdgeEnabled": false,
       "predictiveBackGestureEnabled": false
     },
     "web": {
