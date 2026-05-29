@@ -26,6 +26,12 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "3abc6c7e-a537-4841-8ac3-ab4721f8f5c6"
+      }
+    },
+    "owner": "mauricioasg2002"
   }
 }
