@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { MaterialIcons } from '@expo/vector-icons';
+import WheelPicker from 'react-native-wheely';
 import {
   KeyboardAvoidingView,
   Modal,
@@ -23,7 +24,7 @@ type Direction = 'lbs_to_kg' | 'kg_to_lbs';
 // ─── Converter helpers ────────────────────────────────────────────────────────
 
 const QUICK_LBS = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 60, 70, 80, 90, 100];
-const QUICK_KG  = [2.5, 5, 10, 15, 20, 25, 30, 40, 50];
+const QUICK_KG = [2.5, 5, 10, 15, 20, 25, 30, 40, 50];
 
 function convert(value: string, direction: Direction): string {
   const num = parseFloat(value);
@@ -51,7 +52,7 @@ function Header({ title, onMenuPress }: { title: string; onMenuPress: () => void
 
 const MENU_ITEMS: { label: string; screen: Screen; icon: keyof typeof MaterialIcons.glyphMap }[] = [
   { label: 'Convertidor', screen: 'converter', icon: 'swap-horiz' },
-  { label: 'Temporizador', screen: 'timer',     icon: 'timer' },
+  { label: 'Temporizador', screen: 'timer', icon: 'timer' },
 ];
 
 function NavMenu({
@@ -101,9 +102,9 @@ function ConverterScreen() {
   const [inputValue, setInputValue] = useState('');
   const [direction, setDirection] = useState<Direction>('lbs_to_kg');
 
-  const result      = convert(inputValue, direction);
-  const fromUnit    = direction === 'lbs_to_kg' ? 'lbs' : 'kg';
-  const toUnit      = direction === 'lbs_to_kg' ? 'kg' : 'lbs';
+  const result = convert(inputValue, direction);
+  const fromUnit = direction === 'lbs_to_kg' ? 'lbs' : 'kg';
+  const toUnit = direction === 'lbs_to_kg' ? 'kg' : 'lbs';
   const quickValues = direction === 'lbs_to_kg' ? QUICK_LBS : QUICK_KG;
 
   function toggleDirection() {
@@ -164,7 +165,7 @@ function ConverterScreen() {
 // ─── Timer Screen ─────────────────────────────────────────────────────────────
 
 const PRESETS = [
-  { label: '30 s',  seconds: 30 },
+  { label: '30 s', seconds: 30 },
   { label: '1 min', seconds: 60 },
   { label: '2 min', seconds: 120 },
   { label: '3 min', seconds: 180 },
@@ -177,14 +178,23 @@ function fmt(s: number) {
   return `${m}:${sec}`;
 }
 
+const MINUTE_OPTS = Array.from({ length: 100 }, (_, i) => String(i).padStart(2, '0'));
+const SECOND_OPTS = Array.from({ length: 60 },  (_, i) => String(i).padStart(2, '0'));
+
 function TimerScreen() {
-  const [total,    setTotal]    = useState(60);
+  const [minuteIdx, setMinuteIdx] = useState(1);
+  const [secondIdx, setSecondIdx] = useState(0);
+  const [total,     setTotal]     = useState(60);
   const [remaining, setRemaining] = useState(60);
-  const [running,  setRunning]  = useState(false);
+  const [running,   setRunning]   = useState(false);
+  const [pickerVisible, setPickerVisible] = useState(false);
+  // Estado local del picker — aislado hasta presionar "Listo"
+  const [pickerMin, setPickerMin] = useState(1);
+  const [pickerSec, setPickerSec] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const finished = remaining === 0;
-  const progress = remaining / total;
+  const progress  = remaining / total;
 
   useEffect(() => {
     if (running && !finished) {
@@ -198,8 +208,30 @@ function TimerScreen() {
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [running, finished]);
 
+  function openPicker() {
+    if (running) return;
+    // Sincroniza el picker con el tiempo actual antes de abrir
+    setPickerMin(minuteIdx);
+    setPickerSec(secondIdx);
+    setPickerVisible(true);
+  }
+
+  function handlePickerConfirm() {
+    const secs = pickerMin * 60 + pickerSec;
+    if (secs > 0) {
+      setMinuteIdx(pickerMin);
+      setSecondIdx(pickerSec);
+      setTotal(secs);
+      setRemaining(secs);
+      setRunning(false);
+    }
+    setPickerVisible(false);
+  }
+
   function selectPreset(seconds: number) {
     setRunning(false);
+    setMinuteIdx(Math.floor(seconds / 60));
+    setSecondIdx(seconds % 60);
     setTotal(seconds);
     setRemaining(seconds);
   }
@@ -215,55 +247,116 @@ function TimerScreen() {
   }
 
   return (
-    <View style={styles.screenContainer}>
-      {/* Presets */}
-      <View style={styles.presetRow}>
+    <View style={styles.timerContainer}>
+      {/* Preset carousel */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.timerPresetScroll}
+        contentContainerStyle={styles.quickContent}
+      >
         {PRESETS.map(p => (
           <TouchableOpacity
             key={p.seconds}
-            style={[styles.presetBtn, total === p.seconds && styles.presetBtnActive]}
+            style={[styles.quickBtn, total === p.seconds && styles.quickBtnActive]}
             onPress={() => selectPreset(p.seconds)}
           >
-            <Text style={[styles.presetText, total === p.seconds && styles.presetTextActive]}>
+            <Text style={[styles.quickBtnText, total === p.seconds && styles.quickBtnTextActive]}>
               {p.label}
             </Text>
           </TouchableOpacity>
         ))}
-      </View>
+      </ScrollView>
 
-      {/* Ring */}
-      <View style={styles.ringOuter}>
-        <View
-          style={[
-            styles.ringInner,
-            finished && styles.ringFinished,
-            { opacity: 0.15 + 0.85 * progress },
-          ]}
-        />
-        <Text style={[styles.timerDisplay, finished && styles.timerFinished]}>
-          {fmt(remaining)}
-        </Text>
-        {finished && <Text style={styles.timerLabel}>¡Listo!</Text>}
-      </View>
+      {/* Wheel picker modal */}
+      <Modal
+        visible={pickerVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setPickerVisible(false)}
+      >
+        <View style={styles.pickerOverlay}>
+          {/* Backdrop independiente — toca para cancelar sin aplicar cambios */}
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => setPickerVisible(false)} />
+          {/* Card sin vínculo al backdrop */}
+          <View style={styles.pickerCard}>
+            <Text style={styles.pickerTitle}>Selecciona el tiempo</Text>
+            {/* Render condicional: fuerza desmonte/remonte en cada apertura del modal
+                para que WheelPicker inicialice su animación de opacidad desde cero */}
+            {pickerVisible && (
+              <View style={styles.wheelRow}>
+                <View style={styles.wheelLabelCol}>
+                  <WheelPicker
+                    selectedIndex={pickerMin}
+                    options={MINUTE_OPTS}
+                    onChange={setPickerMin}
+                    itemHeight={52}
+                    itemTextStyle={styles.wheelText}
+                    containerStyle={styles.wheelContainer}
+                    selectedIndicatorStyle={styles.wheelIndicator}
+                    decelerationRate="fast"
+                  />
+                  <Text style={styles.wheelLabel}>min</Text>
+                </View>
+                <Text style={styles.timeColon}>:</Text>
+                <View style={styles.wheelLabelCol}>
+                  <WheelPicker
+                    selectedIndex={pickerSec}
+                    options={SECOND_OPTS}
+                    onChange={setPickerSec}
+                    itemHeight={52}
+                    itemTextStyle={styles.wheelText}
+                    containerStyle={styles.wheelContainer}
+                    selectedIndicatorStyle={styles.wheelIndicator}
+                    decelerationRate="fast"
+                  />
+                  <Text style={styles.wheelLabel}>seg</Text>
+                </View>
+              </View>
+            )}
+            <TouchableOpacity style={styles.pickerConfirm} onPress={handlePickerConfirm}>
+              <Text style={styles.pickerConfirmText}>Listo</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
-      {/* Controls */}
-      <View style={styles.timerActions}>
-        <TouchableOpacity
-          style={[styles.btnToggle, finished && styles.btnDisabled]}
-          onPress={handleStartPause}
-          disabled={finished}
-        >
-          <MaterialIcons
-            name={running ? 'pause' : 'play-arrow'}
-            size={26}
-            color="#fff"
-          />
-          <Text style={styles.btnToggleText}>{running ? 'Pausar' : 'Iniciar'}</Text>
+      <View style={styles.timerBody}>
+        {/* Ring — toca para editar el tiempo */}
+        <TouchableOpacity activeOpacity={running ? 1 : 0.7} onPress={openPicker}>
+          <View style={styles.ringOuter}>
+            <View
+              style={[
+                styles.ringInner,
+                finished && styles.ringFinished,
+                { opacity: 0.15 + 0.85 * progress },
+              ]}
+            />
+            <Text style={[styles.timerDisplay, finished && styles.timerFinished]}>
+              {fmt(remaining)}
+            </Text>
+            {finished
+              ? <Text style={styles.timerLabel}>¡Listo!</Text>
+              : !running && <Text style={styles.ringHint}>toca para editar</Text>
+            }
+          </View>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.btnClear} onPress={handleReset}>
-          <MaterialIcons name="replay" size={22} color="#888" />
-        </TouchableOpacity>
+        {/* Controls */}
+        <View style={styles.timerActions}>
+          <TouchableOpacity
+            style={[styles.btnToggle, finished && styles.btnDisabled]}
+            onPress={handleStartPause}
+            disabled={finished}
+          >
+            <MaterialIcons name={running ? 'pause' : 'play-arrow'} size={26} color="#fff" />
+            <Text style={styles.btnToggleText}>{running ? 'Pausar' : 'Iniciar'}</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.btnClear} onPress={handleReset}>
+            <MaterialIcons name="replay" size={22} color="#888" />
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
@@ -272,7 +365,7 @@ function TimerScreen() {
 // ─── Root ─────────────────────────────────────────────────────────────────────
 
 export default function App() {
-  const [screen,      setScreen]      = useState<Screen>('converter');
+  const [screen, setScreen] = useState<Screen>('converter');
   const [menuVisible, setMenuVisible] = useState(false);
 
   const title = screen === 'converter' ? 'Convertidor' : 'Temporizador';
@@ -462,56 +555,139 @@ const styles = StyleSheet.create({
     opacity: 0.4,
   },
 
-  // Timer
-  presetRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 48,
-    flexWrap: 'wrap',
-    justifyContent: 'center',
+  // Timer — layout
+  timerContainer: {
+    flex: 1,
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingTop: 40,
+    paddingBottom: 100,
   },
-  presetBtn: {
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 8,
+  timerPresetScroll: {
+    width: '100%',
+    flexGrow: 0,
+  },
+  timerBody: {
+    paddingBottom: 30,
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+    gap: 20,
+  },
+
+  // Timer — picker modal
+  pickerOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  pickerCard: {
     backgroundColor: '#2a2a2a',
+    borderRadius: 20,
+    paddingHorizontal: 32,
+    paddingTop: 24,
+    paddingBottom: 20,
+    alignItems: 'center',
     borderWidth: 1,
     borderColor: '#3a3a3a',
+    elevation: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.5,
+    shadowRadius: 12,
+    minWidth: 280,
   },
-  presetBtnActive: {
-    backgroundColor: '#f97316',
-    borderColor: '#f97316',
-  },
-  presetText: {
+  pickerTitle: {
     color: '#aaa',
     fontSize: 14,
     fontWeight: '600',
+    letterSpacing: 0.5,
+    marginBottom: 16,
   },
-  presetTextActive: {
+  pickerConfirm: {
+    marginTop: 20,
+    backgroundColor: '#f97316',
+    paddingVertical: 12,
+    paddingHorizontal: 48,
+    borderRadius: 10,
+  },
+  pickerConfirmText: {
     color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
   },
+
+  // Timer — wheel picker
+  wheelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  wheelLabelCol: {
+    alignItems: 'center',
+    gap: 6,
+  },
+  wheelLabel: {
+    color: '#666',
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 0.5,
+  },
+  wheelContainer: {
+    width: 88,
+    backgroundColor: '#1a1a1a',
+    borderRadius: 10,
+  },
+  wheelIndicator: {
+    backgroundColor: 'rgba(249,115,22,0.15)',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#f97316',
+  },
+  wheelText: {
+    color: '#fff',
+    fontSize: 26,
+    fontWeight: '700',
+  },
+  timeColon: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#f97316',
+    marginHorizontal: 4,
+    marginBottom: 24,
+  },
+  ringHint: {
+    color: '#f9731666',
+    fontSize: 11,
+    fontWeight: '500',
+    marginTop: 6,
+    letterSpacing: 0.3,
+  },
+
+  // Timer — ring
   ringOuter: {
-    width: 220,
-    height: 220,
-    borderRadius: 110,
+    width: 210,
+    height: 210,
+    borderRadius: 105,
     borderWidth: 4,
     borderColor: '#f97316',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 48,
   },
   ringInner: {
     position: 'absolute',
     width: '100%',
     height: '100%',
-    borderRadius: 110,
+    borderRadius: 105,
     backgroundColor: '#f97316',
   },
   ringFinished: {
     backgroundColor: '#22c55e',
   },
   timerDisplay: {
-    fontSize: 64,
+    fontSize: 52,
     fontWeight: 'bold',
     color: '#fff',
     letterSpacing: 2,
