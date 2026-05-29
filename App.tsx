@@ -1,6 +1,15 @@
 import { useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  StatusBar as RNStatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 
 type Direction = 'lbs_to_kg' | 'kg_to_lbs';
 
@@ -27,35 +36,53 @@ export default function App() {
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Gym Converter</Text>
+    <View style={styles.safe}>
+      <StatusBar style="light" />
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <Text style={styles.title}>Gym Converter</Text>
 
-      <TextInput
-        style={styles.input}
-        value={inputValue}
-        onChangeText={setInputValue}
-        keyboardType="decimal-pad"
-        placeholder={`Ingresa ${fromUnit}`}
-        placeholderTextColor="#888"
-      />
+        <TextInput
+          style={styles.input}
+          value={inputValue}
+          onChangeText={setInputValue}
+          keyboardType="decimal-pad"
+          placeholder={`Ingresa ${fromUnit}`}
+          placeholderTextColor="#555"
+          selectionColor="#f97316"
+        />
 
-      <Text style={styles.result}>
-        {result !== '' ? `${result} ${toUnit}` : '—'}
-      </Text>
+        <Text style={styles.result}>
+          {result !== '' ? `${result} ${toUnit}` : '—'}
+        </Text>
 
-      <TouchableOpacity style={styles.button} onPress={toggleDirection}>
-        <Text style={styles.buttonText}>{fromUnit} → {toUnit}</Text>
-      </TouchableOpacity>
+        <View style={styles.actions}>
+          <TouchableOpacity style={styles.btnToggle} onPress={toggleDirection}>
+            <Text style={styles.btnToggleText}>{fromUnit} → {toUnit}</Text>
+          </TouchableOpacity>
 
-      <StatusBar style="auto" />
+          <TouchableOpacity
+            style={styles.btnClear}
+            onPress={() => setInputValue('')}
+          >
+            <Text style={styles.btnClearText}>Limpiar</Text>
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  safe: {
+    flex: 1,
+    backgroundColor: '#1a1a1a',
+    paddingTop: RNStatusBar.currentHeight ?? 0,
+  },
   container: {
     flex: 1,
-    backgroundColor: '#fff',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
@@ -63,30 +90,53 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    marginBottom: 32,
+    color: '#f97316',
+    marginBottom: 40,
+    letterSpacing: 1,
   },
   input: {
     width: '100%',
+    backgroundColor: '#2a2a2a',
     borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 20,
-    marginBottom: 16,
+    borderColor: '#3a3a3a',
+    borderRadius: 10,
+    padding: 14,
+    fontSize: 22,
+    color: '#fff',
+    marginBottom: 20,
   },
   result: {
-    fontSize: 36,
+    fontSize: 48,
     fontWeight: 'bold',
-    marginBottom: 24,
+    color: '#f97316',
+    marginBottom: 40,
   },
-  button: {
+  actions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  btnToggle: {
+    flex: 1,
     backgroundColor: '#f97316',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
+    paddingVertical: 14,
+    borderRadius: 10,
+    alignItems: 'center',
   },
-  buttonText: {
+  btnToggleText: {
     color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  btnClear: {
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#3a3a3a',
+    alignItems: 'center',
+  },
+  btnClearText: {
+    color: '#888',
     fontSize: 16,
     fontWeight: '600',
   },
