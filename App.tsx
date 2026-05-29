@@ -3,6 +3,7 @@ import { StatusBar } from 'expo-status-bar';
 import {
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
   StatusBar as RNStatusBar,
   StyleSheet,
   Text,
@@ -10,6 +11,9 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+
+const QUICK_LBS = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 60, 70, 80, 90, 100];
+const QUICK_KG  = [2.5, 5, 10, 15, 20, 25, 30, 40, 50];
 
 type Direction = 'lbs_to_kg' | 'kg_to_lbs';
 
@@ -29,6 +33,7 @@ export default function App() {
   const result = convert(inputValue, direction);
   const fromUnit = direction === 'lbs_to_kg' ? 'lbs' : 'kg';
   const toUnit = direction === 'lbs_to_kg' ? 'kg' : 'lbs';
+  const quickValues = direction === 'lbs_to_kg' ? QUICK_LBS : QUICK_KG;
 
   function toggleDirection() {
     setInputValue('');
@@ -70,6 +75,25 @@ export default function App() {
             <Text style={styles.btnClearText}>Limpiar</Text>
           </TouchableOpacity>
         </View>
+
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.quickScroll}
+          contentContainerStyle={styles.quickContent}
+        >
+          {quickValues.map(val => (
+            <TouchableOpacity
+              key={val}
+              style={[styles.quickBtn, inputValue === String(val) && styles.quickBtnActive]}
+              onPress={() => setInputValue(String(val))}
+            >
+              <Text style={[styles.quickBtnText, inputValue === String(val) && styles.quickBtnTextActive]}>
+                {val}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
       </KeyboardAvoidingView>
     </View>
   );
@@ -114,6 +138,36 @@ const styles = StyleSheet.create({
   actions: {
     flexDirection: 'row',
     gap: 12,
+    width: '100%',
+  },
+  quickScroll: {
+    marginTop: 24,
+    width: '100%',
+  },
+  quickContent: {
+    gap: 8,
+    paddingHorizontal: 4,
+    alignItems: 'flex-start',
+  },
+  quickBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    backgroundColor: '#2a2a2a',
+    borderWidth: 1,
+    borderColor: '#3a3a3a',
+  },
+  quickBtnActive: {
+    backgroundColor: '#f97316',
+    borderColor: '#f97316',
+  },
+  quickBtnText: {
+    color: '#aaa',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  quickBtnTextActive: {
+    color: '#fff',
   },
   btnToggle: {
     flex: 1,
